@@ -14,7 +14,9 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+
     services:
       postgres:
         image: postgres:14
@@ -106,6 +108,9 @@ jobs:
   build:
     needs: [test, security]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
     - uses: actions/checkout@v4
@@ -145,6 +150,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
