@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 350px;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .status-text {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.active {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.inactive {
+            background: #6b7280;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .toggle-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn.active {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .toggle-btn.inactive {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .toggle-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-card {
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card.safe {
+            background: #ecfdf5;
+            border: 1px solid #d1fae5;
+        }
+        
+        .stat-card.threat {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-number.safe {
+            color: #059669;
+        }
+        
+        .stat-number.threat {
+            color: #dc2626;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .recent-events {
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .event {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        
+        .event.safe {
+            background: #f0fdf4;
+            border-left: 3px solid #22c55e;
+        }
+        
+        .event.threat {
+            background: #fef2f2;
+            border-left: 3px solid #ef4444;
+        }
+        
+        .event-icon {
+            margin-right: 8px;
+        }
+        
+        .event-details {
+            flex: 1;
+        }
+        
+        .event-domain {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        .event-time {
+            color: #6b7280;
+            font-size: 11px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #f9fafb;
+        }
+        
+        .action-btn.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .action-btn.primary:hover {
+            background: #2563eb;
+        }
+        
+        .no-events {
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🛡️</div>
+        <div class="title">Phishing Detection Shield</div>
+    </div>
+    
+    <div class="status">
+        <div class="status-text">
+            <div id="status-indicator" class="status-indicator inactive"></div>
+            <span id="status-text">Checking status...</span>
+        </div>
+        <button id="toggle-btn" class="toggle-btn inactive">Enable</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card safe">
+            <div id="safe-count" class="stat-number safe">0</div>
+            <div class="stat-label">Safe Sites</div>
+        </div>
+        <div class="stat-card threat">
+            <div id="threat-count" class="stat-number threat">0</div>
+            <div class="stat-label">Threats Blocked</div>
+        </div>
+    </div>
+    
+    <div class="recent-events">
+        <div class="section-title">Recent Activity</div>
+        <div id="events-container">
+            <div class="no-events">No recent activity</div>
+        </div>
+    </div>
+    
+    <div class="actions">
+        <button id="dashboard-btn" class="action-btn primary">Open Dashboard</button>
+        <button id="settings-btn" class="action-btn">Settings</button>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

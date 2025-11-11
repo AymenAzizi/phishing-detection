@@ -1,0 +1,91 @@
+groups:
+  - name: phishing_detection_alerts
+    interval: 30s
+    rules:
+      # API Health Alerts
+      - alert: APIDown
+        expr: up{job="phishing-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Phishing Detection API is down"
+          description: "The API service has been unreachable for more than 1 minute"
+
+      - alert: HighErrorRate
+        expr: rate(url_predictions_total{result="error"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in predictions"
+          description: "Error rate is above 5% for the last 5 minutes"
+
+      # Performance Alerts
+      - alert: SlowPredictions
+        expr: histogram_quantile(0.95, prediction_duration_seconds) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow prediction processing"
+          description: "95th percentile prediction time is above 2 seconds"
+
+      - alert: HighActivePredictions
+        expr: active_predictions > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active predictions"
+          description: "More than 100 predictions are currently being processed"
+
+      # Database Alerts
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Cannot connect to PostgreSQL database"
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis cache is down"
+          description: "Cannot connect to Redis cache"
+
+      # Dashboard Alerts
+      - alert: DashboardDown
+        expr: up{job="phishing-dashboard"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dashboard service is down"
+          description: "The dashboard has been unreachable for more than 2 minutes"
+
+      # Prediction Volume Alerts
+      - alert: LowPredictionVolume
+        expr: rate(url_predictions_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low prediction volume"
+          description: "Prediction rate is below 0.1 per second"
+
+      - alert: HighPhishingDetectionRate
+        expr: rate(url_predictions_total{result="phishing"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High phishing detection rate"
+          description: "More than 50% of predictions are detecting phishing"
+

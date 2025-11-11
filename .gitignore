@@ -1,0 +1,125 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.prod
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+*.py,cover
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Models and data
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.pth
+*.pkl
+*.joblib
+*.h5
+*.pth
+data/
+datasets/
+
+# Monitoring and metrics
+prometheus_data/
+grafana_data/
+jaeger_data/
+*.json
+!.bandit
+!.secrets.baseline
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Kubernetes
+k8s/secrets.yaml
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# Node modules (if using frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Secrets and credentials
+.secrets.baseline
+secrets/
+credentials/
+*.pem
+*.key
+*.crt
+
+# CI/CD
+.github/workflows/secrets.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+browsing_monitor.db
+*.db
+reports/
+results/
+

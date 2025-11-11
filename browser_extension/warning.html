@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>⚠️ Phishing Site Blocked</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #fee2e2, #fef2f2);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 48px;
+            text-align: center;
+            border: 2px solid #fecaca;
+        }
+        
+        .warning-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 16px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #7f1d1d;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        
+        .blocked-url {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+            font-family: monospace;
+            font-size: 14px;
+            color: #991b1b;
+            word-break: break-all;
+        }
+        
+        .details {
+            background: #fffbeb;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+            text-align: left;
+        }
+        
+        .details h3 {
+            color: #92400e;
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .details ul {
+            color: #78350f;
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .details li {
+            margin-bottom: 8px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 32px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .shield-logo {
+            display: inline-flex;
+            align-items: center;
+            color: #3b82f6;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        
+        .shield-logo:hover {
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="warning-icon">🛡️⚠️</div>
+        
+        <h1 class="title">Phishing Site Blocked</h1>
+        
+        <p class="subtitle">
+            Our AI-powered protection system has detected that this website is likely a phishing attempt designed to steal your personal information.
+        </p>
+        
+        <div class="blocked-url">
+            <strong>Blocked URL:</strong><br>
+            <span id="blocked-url">Loading...</span>
+        </div>
+        
+        <div class="details">
+            <h3>🔍 Why was this site blocked?</h3>
+            <ul>
+                <li>The URL structure matches known phishing patterns</li>
+                <li>The domain may be impersonating a legitimate service</li>
+                <li>Suspicious content or behavior was detected</li>
+                <li>The site may attempt to steal passwords or personal data</li>
+            </ul>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-primary" onclick="goBack()">
+                ← Go Back Safely
+            </button>
+            <button class="btn btn-secondary" onclick="openDashboard()">
+                📊 View Dashboard
+            </button>
+            <button class="btn btn-danger" onclick="proceedAnyway()" style="display: none;" id="proceed-btn">
+                ⚠️ Proceed Anyway (Not Recommended)
+            </button>
+        </div>
+        
+        <div class="footer">
+            Protected by 
+            <a href="#" class="shield-logo" onclick="openDashboard()">
+                🛡️ Phishing Detection Shield
+            </a>
+            <br><br>
+            <small>
+                If you believe this is a false positive, please report it through our dashboard.
+            </small>
+        </div>
+    </div>
+    
+    <script>
+        // Get blocked URL from query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const blockedUrl = urlParams.get('blocked');
+        
+        if (blockedUrl) {
+            document.getElementById('blocked-url').textContent = decodeURIComponent(blockedUrl);
+        }
+        
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'about:blank';
+            }
+        }
+        
+        function openDashboard() {
+            window.open('http://localhost:3000', '_blank');
+        }
+        
+        function proceedAnyway() {
+            if (confirm('Are you sure you want to proceed to this potentially dangerous site? This is not recommended.')) {
+                window.location.href = decodeURIComponent(blockedUrl);
+            }
+        }
+        
+        // Show proceed button after 10 seconds (for advanced users)
+        setTimeout(() => {
+            document.getElementById('proceed-btn').style.display = 'inline-block';
+        }, 10000);
+    </script>
+</body>
+</html>

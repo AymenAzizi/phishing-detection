@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phishing-dashboard
+  namespace: phishing-detection
+  labels:
+    app: phishing-dashboard
+    version: v1
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: phishing-dashboard
+  template:
+    metadata:
+      labels:
+        app: phishing-dashboard
+        version: v1
+    spec:
+      serviceAccountName: phishing-dashboard
+      containers:
+      - name: dashboard
+        image: ghcr.io/your-org/phishing-detection-dashboard:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: phishing-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: phishing-config
+              key: LOG_LEVEL
+        - name: API_URL
+          value: "http://phishing-api:8000"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phishing-dashboard
+  namespace: phishing-detection
+  labels:
+    app: phishing-dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: phishing-dashboard
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: phishing-dashboard
+  namespace: phishing-detection
+
