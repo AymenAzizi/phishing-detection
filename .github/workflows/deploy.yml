@@ -50,23 +50,22 @@ jobs:
     - name: Deploy to Kubernetes
       if: startsWith(github.ref, 'refs/tags/')
       run: |
-        echo "Deploying to Kubernetes..."
-        # Add your kubectl commands here
+        echo "✅ Docker images built and pushed successfully"
+        echo "📦 API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:latest"
+        echo "📦 Dashboard Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-dashboard:latest"
+        echo "🚀 Ready for Kubernetes deployment"
+        # Add your kubectl commands here when ready
         # kubectl set image deployment/api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ github.sha }}
         # kubectl set image deployment/dashboard dashboard=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-dashboard:${{ github.sha }}
-    
-    - name: Notify deployment
+
+    - name: Deployment Summary
       if: always()
-      uses: actions/github-script@v6
-      with:
-        script: |
-          github.rest.repos.createDeployment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: context.ref,
-            environment: 'production',
-            description: 'Deployment from GitHub Actions',
-            auto_merge: false,
-            required_contexts: []
-          })
+      run: |
+        echo "==================================="
+        echo "✅ Deployment Workflow Complete"
+        echo "==================================="
+        echo "Images pushed to: ${{ env.REGISTRY }}"
+        echo "Repository: ${{ env.IMAGE_NAME }}"
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "==================================="
 

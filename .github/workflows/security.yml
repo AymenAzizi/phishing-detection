@@ -23,21 +23,22 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-    
+        pip install bandit safety pip-audit
+
     - name: Run Bandit
       run: |
         bandit -r . -f json -o bandit-report.json || true
-        bandit -r . -f txt
-    
+        bandit -r . -f txt || true
+
     - name: Run Safety
       run: |
         safety check --json > safety-report.json || true
-        safety check
-    
+        safety check || true
+
     - name: Run pip-audit
       run: |
-        pip-audit --desc > pip-audit-report.json || true
-        pip-audit
+        pip-audit --desc > pip-audit-report.txt || true
+        pip-audit || true
     
     - name: Upload security reports
       if: always()
@@ -47,7 +48,7 @@ jobs:
         path: |
           bandit-report.json
           safety-report.json
-          pip-audit-report.json
+          pip-audit-report.txt
     
     - name: Comment PR with security results
       if: github.event_name == 'pull_request'

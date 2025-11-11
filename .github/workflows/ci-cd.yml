@@ -9,7 +9,7 @@ on:
 env:
   PYTHON_VERSION: '3.10'
   DOCKER_REGISTRY: ghcr.io
-  IMAGE_NAME: phishing-detection-system
+  IMAGE_NAME: ${{ github.repository_owner }}/phishing-detection
 
 jobs:
   test:
@@ -52,15 +52,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest-cov
-    
+        pip install pytest pytest-cov pytest-asyncio httpx
+
     - name: Lint with flake8
       run: |
+        pip install flake8
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || true
 
     - name: Type check with mypy
       run: |
+        pip install mypy
         mypy . --ignore-missing-imports || true
 
     - name: Test with pytest
@@ -117,7 +119,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+        images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
