@@ -20,6 +20,7 @@ services:
       retries: 5
     networks:
       - phishing_network
+    pull_policy: if_not_present
 
   # Redis Cache
   redis:
@@ -37,12 +38,14 @@ services:
       retries: 5
     networks:
       - phishing_network
+    pull_policy: if_not_present
 
   # API Service
   api:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     container_name: phishing_api
     environment:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-phishing_db}
@@ -76,6 +79,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dashboard
+      network: host
     container_name: phishing_dashboard
     environment:
       API_URL: http://api:8000
