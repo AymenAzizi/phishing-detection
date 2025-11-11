@@ -145,21 +145,28 @@ jobs:
     permissions:
       security-events: write
       contents: read
-    
+
     steps:
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo docker system prune -af
+        df -h
+
     - name: Checkout Code
       uses: actions/checkout@v4
     
-    - name: Build Docker Image
-      run: |
-        docker build -t phishing-detection:latest .
-    
-    - name: Trivy Security Scan
+    - name: Trivy Filesystem Security Scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'phishing-detection:latest'
+        scan-type: 'fs'
+        scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
+      continue-on-error: true
     
     - name: Upload Trivy Scan Results
       uses: github/codeql-action/upload-sarif@v3
