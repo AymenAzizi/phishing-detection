@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Real Phishing Detection API - ML Model Integration
-Uses trained ML models and real feature extraction for accurate phishing detection
+DevSecScan API - Comprehensive Security Scanning Platform
+Combines phishing detection with SSL/TLS, headers, and vulnerability scanning
 """
 
 from fastapi import FastAPI, HTTPException
@@ -20,6 +20,17 @@ from urllib.parse import urlparse
 from real_feature_extractor import RealFeatureExtractor
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 import structlog
+
+# Import security scanners
+from security_scanners.comprehensive_scanner import ComprehensiveScanner
+
+# Import ML explainer
+try:
+    from ml_explainer import MLExplainer
+    ML_EXPLAINER_AVAILABLE = True
+except ImportError:
+    ML_EXPLAINER_AVAILABLE = False
+    print("⚠️ ML Explainer not available. Install SHAP and LIME for explainable AI features.")
 
 # Pydantic models
 class URLPredictionRequest(BaseModel):
@@ -63,11 +74,31 @@ class SystemStatus(BaseModel):
     class Config:
         protected_namespaces = ()
 
+# New security scanning models
+class SecurityScanRequest(BaseModel):
+    url: str
+    scan_types: Optional[List[str]] = None  # ['ssl', 'headers', 'vulnerabilities', 'phishing']
+    depth: str = 'standard'  # 'quick', 'standard', 'deep'
+
+class SecurityScanResponse(BaseModel):
+    scan_id: str
+    url: str
+    overall_score: float
+    grade: str
+    security_level: str
+    total_issues: int
+    issues_by_severity: Dict[str, int]
+    scanner_scores: Dict[str, float]
+    timestamp: str
+    scan_depth: str
+    scans: Dict
+    top_recommendations: List[Dict]
+
 # Initialize FastAPI app
 app = FastAPI(
-    title="Real Phishing Detection API",
-    description="Production phishing detection using ML models",
-    version="3.0.0"
+    title="DevSecScan API",
+    description="Comprehensive security scanning platform for developers - SSL/TLS, Headers, Vulnerabilities, and Phishing Detection",
+    version="4.0.0"
 )
 
 # Add CORS middleware
@@ -86,6 +117,12 @@ feature_extractor = None
 feature_names = []
 model_metadata = {}
 feature_extractor_ready = False
+
+# Global security scanner
+security_scanner = None
+
+# Global ML explainer
+ml_explainer = None
 
 def load_trained_model():
     """Load the trained ML model and components"""
@@ -225,7 +262,7 @@ def predict_phishing_ml(url: str, include_features: bool = False) -> Dict:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 def analyze_email_content(email_content: str, sender: str = None, subject: str = None) -> Dict:
-    """Analyze email content for phishing indicators using heuristics"""
+    """Analyze email content for phishing indicators using heuristics + URL ML model"""
     start_time = time.time()
 
     try:
@@ -255,13 +292,33 @@ def analyze_email_content(email_content: str, sender: str = None, subject: str =
             risk_score += 0.2
             risk_factors.append("Contains threat keywords")
 
-        # Check for suspicious URLs
+        # Check for suspicious URLs (heuristic)
         url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
         urls = re.findall(url_pattern, email_content)
         suspicious_url_count = sum(1 for url in urls if any(sus in url.lower() for sus in ['bit.ly', 'tinyurl', '.tk', '.ml']))
         if suspicious_url_count > 0:
             risk_score += 0.4
             risk_factors.append("Contains suspicious URLs")
+
+        # Use ML model to analyze URLs inside the email, if available
+        ml_flagged_urls = []
+        if ml_model is not None and urls:
+            for url in urls:
+                try:
+                    ml_result = predict_phishing_ml(url)
+                    if ml_result.get("is_phishing") and ml_result.get("confidence", 0.0) >= 0.7:
+                        ml_flagged_urls.append((url, ml_result["confidence"]))
+                except Exception:
+                    # Don't break email analysis if URL model fails for one URL
+                    continue
+
+        if ml_flagged_urls:
+            # Boost risk score if any embedded URL looks phishing
+            risk_score += 0.3
+            for url, conf in ml_flagged_urls[:3]:
+                risk_factors.append(
+                    f"ML model flagged URL as phishing: {url} ({conf * 100:.1f}% confidence)"
+                )
 
         # Check sender domain if provided
         if sender and any(sus in sender.lower() for sus in ['.tk', '.ml', 'temp', 'fake']):
@@ -305,8 +362,10 @@ def analyze_email_content(email_content: str, sender: str = None, subject: str =
 # API Endpoints
 @app.on_event("startup")
 async def startup_event():
-    """Load model on startup"""
-    print("🚀 Phishing Detection API starting...")
+    """Load model and initialize scanners on startup"""
+    global security_scanner, ml_explainer
+
+    print("🚀 DevSecScan API starting...")
     success = load_trained_model()
     if success:
         print("✅ ML model loaded successfully")
@@ -314,6 +373,25 @@ async def startup_event():
     else:
         print("⚠️  API starting without trained ML model")
         print("📝 To train the model, run: python real_model_trainer.py")
+
+    # Initialize security scanner
+    try:
+        security_scanner = ComprehensiveScanner()
+        print("✅ Security scanners initialized")
+        print("🔒 SSL/TLS, Headers, and Vulnerability scanning ready")
+    except Exception as e:
+        print(f"⚠️  Security scanners initialization failed: {e}")
+
+    # Initialize ML explainer
+    if ML_EXPLAINER_AVAILABLE and success:
+        try:
+            ml_explainer = MLExplainer()
+            print("✅ ML Explainer initialized (SHAP/LIME)")
+            print("🧠 Explainable AI features ready")
+        except Exception as e:
+            print(f"⚠️  ML Explainer initialization failed: {e}")
+            ml_explainer = None
+        print("📝 Some security scanning features may not be available")
 
 @app.get("/")
 async def root():
@@ -324,16 +402,6 @@ async def root():
         "detection_method": "rule-based",
         "docs": "/docs"
     }
-
-@app.get("/health")
-async def health_check():
-    return SystemStatus(
-        status="healthy",
-        model_loaded=True,  # Rule-based system is always "loaded"
-        feature_extractor_ready=feature_extractor_ready,
-        timestamp=datetime.utcnow().isoformat(),
-        model_info=model_metadata
-    )
 
 @app.post("/predict/url", response_model=URLPredictionResponse)
 async def predict_url(request: URLPredictionRequest):
@@ -360,6 +428,64 @@ async def predict_email(request: EmailPredictionRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Email prediction failed: {str(e)}")
+
+@app.post("/api/v1/explain")
+async def explain_prediction(request: URLPredictionRequest):
+    """Explain phishing prediction using SHAP/LIME"""
+    if ml_explainer is None:
+        raise HTTPException(
+            status_code=503,
+            detail="ML Explainer not available. Install SHAP and LIME libraries."
+        )
+
+    if ml_model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="ML model not loaded."
+        )
+
+    try:
+        # Get prediction with features
+        result = predict_phishing_ml(request.url, include_features=True)
+
+        # Extract features for explanation
+        features_dict = feature_extractor.extract_url_features(request.url)
+        features_vector = np.array([features_dict.get(name, 0) for name in feature_names])
+
+        # Scale features
+        if feature_scaler is not None:
+            features_vector = feature_scaler.transform(features_vector.reshape(1, -1))[0]
+
+        # Get explanation
+        explanation = ml_explainer.explain_prediction(
+            features_vector,
+            feature_dict=features_dict,
+            method="shap"
+        )
+
+        # Combine prediction and explanation
+        return {
+            **result,
+            "explanation": explanation
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Explanation failed: {str(e)}")
+
+@app.get("/api/v1/feature-importance")
+async def get_feature_importance():
+    """Get global feature importance from the model"""
+    if ml_explainer is None:
+        raise HTTPException(
+            status_code=503,
+            detail="ML Explainer not available."
+        )
+
+    try:
+        importance = ml_explainer.get_global_feature_importance()
+        return importance
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get feature importance: {str(e)}")
 
 @app.get("/model/info")
 async def get_model_info():
@@ -433,11 +559,22 @@ active_predictions = Gauge(
 # Health Check Endpoints
 @app.get("/health")
 async def health_check():
-    """Basic health check endpoint"""
+    """Comprehensive health check endpoint"""
     return {
         "status": "healthy",
+        "ml_model_loaded": ml_model is not None,
+        "security_scanners_ready": security_scanner is not None,
+        "ml_explainer_ready": ml_explainer is not None,
+        "feature_extractor_ready": feature_extractor_ready,
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "phishing-detection-api"
+        "service": "DevSecScan API",
+        "version": "4.0.0",
+        "features": {
+            "phishing_detection": ml_model is not None,
+            "explainable_ai": ml_explainer is not None,
+            "security_scanning": security_scanner is not None,
+            "email_analysis": True
+        }
     }
 
 @app.get("/ready")
@@ -479,16 +616,176 @@ async def metrics():
 async def info():
     """Service information endpoint"""
     return {
-        "service": "phishing-detection-api",
-        "version": "1.0.0",
+        "service": "devsec-scan-api",
+        "version": "4.0.0",
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
+        "features": [
+            "SSL/TLS Security Scanning",
+            "Security Headers Analysis",
+            "Vulnerability Detection",
+            "ML-based Phishing Detection"
+        ]
     }
 
+# ============================================================================
+# PHISHING DETECTION ENDPOINTS (v1 API)
+# ============================================================================
+
+@app.post("/api/v1/predict", response_model=URLPredictionResponse)
+async def predict_url_v1(request: URLPredictionRequest):
+    """Analyze URL for phishing using trained ML model (v1 API)"""
+    if ml_model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="ML model not loaded. Please check model file exists."
+        )
+
+    try:
+        result = predict_phishing_ml(request.url, request.include_features)
+        return URLPredictionResponse(**result)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+@app.post("/api/v1/email", response_model=EmailPredictionResponse)
+async def predict_email_v1(request: EmailPredictionRequest):
+    """Analyze email for phishing indicators (v1 API)"""
+    try:
+        result = analyze_email_content(request.email_content, request.sender, request.subject)
+        return EmailPredictionResponse(**result)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Email analysis failed: {str(e)}")
+
+# ============================================================================
+# NEW SECURITY SCANNING ENDPOINTS
+# ============================================================================
+
+@app.post("/api/v1/scan/comprehensive", response_model=SecurityScanResponse)
+async def comprehensive_security_scan(request: SecurityScanRequest):
+    """
+    Comprehensive security scan - all scanners
+
+    Runs SSL/TLS, Security Headers, Vulnerability, and Phishing detection scans
+    """
+    if security_scanner is None:
+        raise HTTPException(status_code=503, detail="Security scanner not initialized")
+
+    try:
+        start_time = time.time()
+
+        # Run comprehensive scan
+        results = security_scanner.scan(
+            url=request.url,
+            scan_types=request.scan_types,
+            depth=request.depth
+        )
+
+        processing_time = (time.time() - start_time) * 1000
+
+        return SecurityScanResponse(
+            scan_id=str(uuid.uuid4()),
+            url=request.url,
+            overall_score=results['overall']['overall_score'],
+            grade=results['overall']['grade'],
+            security_level=results['overall']['summary']['security_level'],
+            total_issues=results['overall']['total_issues'],
+            issues_by_severity=results['overall']['issues_by_severity'],
+            scanner_scores=results['overall']['scanner_scores'],
+            timestamp=datetime.utcnow().isoformat(),
+            scan_depth=request.depth,
+            scans=results['scans'],
+            top_recommendations=results['overall']['top_recommendations']
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Security scan failed: {str(e)}")
+
+@app.post("/api/v1/scan/quick")
+async def quick_security_scan(request: SecurityScanRequest):
+    """
+    Quick security scan - SSL and Headers only (fast)
+    """
+    if security_scanner is None:
+        raise HTTPException(status_code=503, detail="Security scanner not initialized")
+
+    try:
+        results = security_scanner.quick_scan(request.url)
+
+        return {
+            "scan_id": str(uuid.uuid4()),
+            "url": request.url,
+            "overall_score": results['overall']['overall_score'],
+            "grade": results['overall']['grade'],
+            "scans": results['scans'],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quick scan failed: {str(e)}")
+
+@app.post("/api/v1/scan/ssl")
+async def ssl_scan(request: SecurityScanRequest):
+    """SSL/TLS security scan only"""
+    if security_scanner is None:
+        raise HTTPException(status_code=503, detail="Security scanner not initialized")
+
+    try:
+        results = security_scanner.ssl_scanner.scan(request.url)
+        return {
+            "scan_id": str(uuid.uuid4()),
+            "url": request.url,
+            "results": results,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"SSL scan failed: {str(e)}")
+
+@app.post("/api/v1/scan/headers")
+async def headers_scan(request: SecurityScanRequest):
+    """Security headers scan only"""
+    if security_scanner is None:
+        raise HTTPException(status_code=503, detail="Security scanner not initialized")
+
+    try:
+        results = security_scanner.headers_scanner.scan(request.url)
+        return {
+            "scan_id": str(uuid.uuid4()),
+            "url": request.url,
+            "results": results,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Headers scan failed: {str(e)}")
+
+@app.post("/api/v1/scan/vulnerabilities")
+async def vulnerability_scan(request: SecurityScanRequest):
+    """Vulnerability scan only"""
+    if security_scanner is None:
+        raise HTTPException(status_code=503, detail="Security scanner not initialized")
+
+    try:
+        results = security_scanner.vulnerability_scanner.scan(request.url)
+        return {
+            "scan_id": str(uuid.uuid4()),
+            "url": request.url,
+            "results": results,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Vulnerability scan failed: {str(e)}")
+
 if __name__ == "__main__":
-    print("🚀 Starting Real Phishing Detection API...")
+    print("🚀 Starting DevSecScan API...")
     print("📊 Health check: http://localhost:8000/health")
     print("📚 Interactive docs: http://localhost:8000/docs")
-    print("⚡ Ready for real phishing detection!")
-    
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    print("🔒 Security scanning endpoints:")
+    print("   - POST /api/v1/scan/comprehensive")
+    print("   - POST /api/v1/scan/quick")
+    print("   - POST /api/v1/scan/ssl")
+    print("   - POST /api/v1/scan/headers")
+    print("   - POST /api/v1/scan/vulnerabilities")
+    print("⚡ Ready for comprehensive security scanning!")
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -19,7 +19,7 @@ function updateStatusUI(status) {
     const indicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
     const toggleBtn = document.getElementById('toggle-btn');
-    
+
     if (status.enabled) {
         indicator.className = 'status-indicator active';
         statusText.textContent = `Protection Active (${status.analyzedCount} sites scanned)`;
@@ -45,23 +45,23 @@ async function loadEvents() {
 
 function displayEvents(events) {
     const container = document.getElementById('events-container');
-    
+
     if (events.length === 0) {
         container.innerHTML = '<div class="no-events">No recent activity</div>';
         return;
     }
-    
+
     container.innerHTML = '';
-    
+
     // Show last 5 events
     events.slice(0, 5).forEach(event => {
         const eventDiv = document.createElement('div');
         eventDiv.className = `event ${event.is_phishing ? 'threat' : 'safe'}`;
-        
+
         const time = new Date(event.timestamp).toLocaleTimeString();
         const domain = event.domain;
         const icon = event.is_phishing ? '🚨' : '✅';
-        
+
         eventDiv.innerHTML = `
             <div class="event-icon">${icon}</div>
             <div class="event-details">
@@ -69,7 +69,7 @@ function displayEvents(events) {
                 <div class="event-time">${time} • ${(event.confidence * 100).toFixed(1)}% confidence</div>
             </div>
         `;
-        
+
         container.appendChild(eventDiv);
     });
 }
@@ -77,7 +77,7 @@ function displayEvents(events) {
 function updateStats(events) {
     const safeCount = events.filter(e => !e.is_phishing).length;
     const threatCount = events.filter(e => e.is_phishing).length;
-    
+
     document.getElementById('safe-count').textContent = safeCount;
     document.getElementById('threat-count').textContent = threatCount;
 }
@@ -92,18 +92,35 @@ function setupEventListeners() {
             console.error('Failed to toggle protection:', error);
         }
     });
-    
+
     // Open dashboard
     document.getElementById('dashboard-btn').addEventListener('click', () => {
         chrome.tabs.create({ url: 'http://localhost:3000' });
         window.close();
     });
-    
+
     // Settings (placeholder)
     document.getElementById('settings-btn').addEventListener('click', () => {
         // Open settings page or show settings modal
         alert('Settings functionality coming soon!');
     });
+    // Scan current page with the ML model
+    document.getElementById('scan-btn').addEventListener('click', async () => {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab && tab.url) {
+                await chrome.runtime.sendMessage({
+                    action: 'scanCurrentTab',
+                    url: tab.url,
+                    tabId: tab.id
+                });
+                alert('Scanning current page with phishing detector...');
+            }
+        } catch (error) {
+            console.error('Failed to scan current tab:', error);
+        }
+    });
+
 }
 
 // Refresh data every 5 seconds when popup is open

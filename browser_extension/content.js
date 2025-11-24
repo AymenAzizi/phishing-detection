@@ -31,12 +31,12 @@
         return;
     }
 
-    // Configuration - very conservative by default
+    // Configuration - enable visible protection for demo
     const SHIELD_CONFIG = {
         enabled: true,
-        showWarnings: false,  // Disable warnings by default
-        checkForms: false,    // Disable form monitoring by default
-        checkLinks: false     // Disable link monitoring by default
+        showWarnings: true,   // Show in-page warnings for suspicious activity
+        checkForms: true,     // Monitor forms for sensitive data on suspicious sites
+        checkLinks: true      // Monitor suspicious links and show alerts
     };
 
     // Only initialize if this might be a suspicious site

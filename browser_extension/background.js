@@ -150,13 +150,14 @@ function isPotentiallySuspiciousUrl(url) {
 }
 
 // Analyze URL for phishing
-async function analyzeUrl(url, tabId) {
+async function analyzeUrl(url, tabId, options = {}) {
   try {
-    // Skip non-web URLs and already analyzed URLs
-    if (!url.startsWith('http') || analyzedUrls.has(url)) {
+    const { force = false } = options;
+    // Skip non-web URLs and already analyzed URLs (unless forced from popup)
+    if (!url.startsWith('http') || (!force && analyzedUrls.has(url))) {
       return;
     }
-    
+
     // Skip localhost and common safe domains
     const skipDomains = ['localhost', '127.0.0.1', 'chrome://', 'about:', 'moz-extension:', 'chrome-extension:'];
     if (skipDomains.some(domain => url.includes(domain))) {
@@ -346,6 +347,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     isEnabled = !isEnabled;
     chrome.storage.sync.set({ enabled: isEnabled });
     sendResponse({ enabled: isEnabled });
+  } else if (request.action === 'scanCurrentTab') {
+    analyzeUrl(request.url, request.tabId, { force: true })
+      .then(() => {
+        sendResponse({ status: 'ok' });
+      })
+      .catch(error => {
+        console.error('Scan from popup failed:', error);
+        sendResponse({ status: 'error', error: String(error) });
+      });
+    return true; // Async response
   } else if (request.action === 'getEvents') {
     chrome.storage.local.get(['browsingEvents']).then(data => {
       sendResponse({ events: data.browsingEvents || [] });

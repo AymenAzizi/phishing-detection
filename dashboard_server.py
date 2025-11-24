@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app for dashboard
 dashboard_app = FastAPI(
-    title="Phishing Detection Dashboard",
-    description="Real-time monitoring dashboard for phishing detection system",
-    version="1.0.0"
+    title="DevSecScan Dashboard",
+    description="Real-time monitoring dashboard for DevSecScan security scanning platform",
+    version="2.0.0"
 )
 
 # Add CORS middleware
@@ -73,7 +73,31 @@ def check_api_health():
 
 @dashboard_app.get("/", response_class=HTMLResponse)
 async def dashboard_home():
-    """Serve the main dashboard"""
+    """Serve the main DevSecScan dashboard"""
+    try:
+        with open("dashboard/devsec_dashboard.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        # Fallback to old dashboard
+        try:
+            with open("dashboard/index.html", "r", encoding="utf-8") as f:
+                content = f.read()
+            return HTMLResponse(content=content)
+        except FileNotFoundError:
+            return HTMLResponse(content="""
+            <html>
+                <head><title>Dashboard Not Found</title></head>
+                <body>
+                    <h1>Dashboard file not found</h1>
+                    <p>Please ensure dashboard/devsec_dashboard.html or dashboard/index.html exists</p>
+                </body>
+            </html>
+            """)
+
+@dashboard_app.get("/old", response_class=HTMLResponse)
+async def old_dashboard():
+    """Serve the old phishing detection dashboard"""
     try:
         with open("dashboard/index.html", "r", encoding="utf-8") as f:
             content = f.read()
@@ -83,7 +107,7 @@ async def dashboard_home():
         <html>
             <head><title>Dashboard Not Found</title></head>
             <body>
-                <h1>Dashboard file not found</h1>
+                <h1>Old dashboard file not found</h1>
                 <p>Please ensure dashboard/index.html exists</p>
             </body>
         </html>
@@ -464,14 +488,24 @@ async def get_extension_events():
 @dashboard_app.on_event("startup")
 async def startup_event():
     """Initialize dashboard with real data"""
-    print("🎯 Dashboard starting with real data integration...")
-    print("📊 Connected to real ML API for live predictions")
+    print("🎯 DevSecScan Dashboard starting with real data integration...")
+    print("📊 Connected to DevSecScan API for live security scanning")
     print("🔄 All mock data removed - using actual results only")
+    print("🔒 Security scanners: SSL/TLS, Headers, Vulnerabilities, Phishing")
 
 if __name__ == "__main__":
-    print("🎯 Starting Phishing Detection Dashboard...")
+    print("=" * 70)
+    print("🛡️  DevSecScan Dashboard - Comprehensive Security Scanning Platform")
+    print("=" * 70)
     print("📊 Dashboard available at: http://localhost:3000")
     print("🔗 Make sure the main API is running on port 8000")
-    print("✨ Real-time monitoring and testing interface ready!")
-    
-    uvicorn.run(dashboard_app, host="0.0.0.0", port=3000, reload=True)
+    print("✨ Features:")
+    print("   • SSL/TLS Security Analysis")
+    print("   • Security Headers Scanning")
+    print("   • Vulnerability Detection")
+    print("   • Phishing Detection (ML-based)")
+    print("   • Real-time monitoring and testing interface")
+    print("=" * 70)
+    print("🚀 Starting server...")
+
+    uvicorn.run(dashboard_app, host="0.0.0.0", port=3000, reload=False)

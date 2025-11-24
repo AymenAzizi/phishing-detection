@@ -7,6 +7,13 @@ tensorflow>=2.8.0
 torch>=1.11.0
 transformers>=4.15.0
 
+# Explainable AI
+shap>=0.41.0
+lime>=0.2.0.1
+matplotlib>=3.5.0
+seaborn>=0.11.0
+scikit-plot>=0.3.7
+
 # Web Framework and API
 fastapi>=0.75.0
 uvicorn>=0.17.0
@@ -24,6 +31,10 @@ requests>=2.27.0
 urllib3>=1.26.0
 python-whois>=0.7.3
 tldextract>=3.2.0
+
+# Security Scanning
+pyOpenSSL>=22.0.0
+cryptography>=36.0.0
 
 # Database and Caching
 sqlalchemy>=1.4.0
